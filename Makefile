@@ -1,8 +1,11 @@
 CC = gcc
 CFLAGS = -o
 SRC = ./src/*.c
-OUT = ./bin/sienna.exe
+OUT = ./bin/sienna
 
 all:
-	$(CC) $(CFLAGS) $(OUT) $(SRC)
-	$(OUT)
+	$(CC) $(CFLAGS) $(OUT).exe $(SRC)
+	$(OUT).exe
+debug:
+	$(CC) -g $(CFLAGS) $(OUT)dbg.exe $(SRC)
+	gdb $(OUT).exe
