@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include "processor.h"
-#include "instructions.h";
+#include "instructions.h"
 int main() {
     sienna_processor_t processor;
     sienna_processor_init(&processor, 1);

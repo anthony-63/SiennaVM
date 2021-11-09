@@ -239,7 +239,7 @@ void dbg(sienna_processor_t* processor) {
     printf("jr: %06x\n", GET_REG(processor, jr));
     printf("%04x: ", GET_REG(processor, ip));
     for(int i = 0; i < 10; i++){
-        printf("%02x ", sienna_bankeddatabus_fetch(processor, GET_REG(processor, mb), GET_REG(processor, ip) + i));
+        printf("%02x ", sienna_bankeddatabus_fetch(&processor->databus, GET_REG(processor, mb), GET_REG(processor, ip) + i));
     }
 }
 
