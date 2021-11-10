@@ -1,11 +1,23 @@
 CC = gcc
 CFLAGS = -o
-SRC = ./src/*.c
-OUT = ./bin/sienna
+SRCVM = ./src/vm/*.c
+SRCASM = ./src/assembler/*.c
+OUTVM = ./bin/sienna
+OUTASM = ./bin/siennac
 
-all:
-	$(CC) $(CFLAGS) $(OUT).exe $(SRC)
-	$(OUT).exe
-debug:
-	$(CC) -g $(CFLAGS) $(OUT)dbg.exe $(SRC)
-	gdb $(OUT).exe
+vm:
+	@echo ----- Building VM -----
+	$(CC) $(CFLAGS) $(OUTVM).exe $(SRCVM)
+	$(OUTVM).exe
+debugvm:
+	@echo ----- Builing VM with symbols -----
+	$(CC) -g $(CFLAGS) $(OUTVM)dbg.exe $(SRCVM)
+	gdb $(OUTVM).exe
+asm: 
+	@echo ----- Building Assembler -----
+	$(CC) $(CFLAGS) $(OUTASM).exe $(SRCASM)
+	$(OUTASM).exe
+debugasm:
+	@echo ----- Builing Assembler with symbols -----
+	$(CC) -g $(CFLAGS) $(OUTASM)dbg.exe $(SRCASM)
+	gdb $(OUTASM).exe
