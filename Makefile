@@ -20,4 +20,4 @@ asm:
 debugasm:
 	@echo ----- Builing Assembler with symbols -----
 	$(CC) -g $(CFLAGS) $(OUTASM)dbg.exe $(SRCASM)
-	gdb $(OUTASM).exe
+	gdb $(OUTASM)dbg.exe

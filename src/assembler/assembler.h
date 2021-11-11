@@ -6,7 +6,8 @@ typedef struct {
     char* program;
     int* out;
     int oidx;
-    int start;
+    int psize;
+    int ooffs;
 } sienna_assembler_t;
 
 void sienna_assembler_assemble(sienna_assembler_t* assembler, char* input_file, char* output_file);

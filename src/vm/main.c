@@ -12,7 +12,8 @@ int main() {
         hlt
     };
     //size bank location
-    sienna_processor_load(&processor, prog, sizeof(prog)/sizeof(prog[0]), 0, 0x0000);
+    // sienna_processor_load(&processor, prog, sizeof(prog)/sizeof(prog[0]), 0, 0x0000);
+    sienna_processor_loadbin(&processor, "./programs/main.sbin", 0, 0x0000);
     sienna_processor_run(&processor, 0x0000, 1);
     return 0;
 }

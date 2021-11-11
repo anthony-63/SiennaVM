@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <string.h>
 #include "processor.h"
 #include "instructions.h"
 //macros to make this easier
@@ -263,14 +264,26 @@ void sienna_processor_run(sienna_processor_t* processor, int location, int debug
 }
 
 void sienna_processor_load(sienna_processor_t* processor, int* program, int psize, int bank, int location){
-    printf("Loading program: ");
+    printf("Loading program: \n");
     for(int i = 0; i < psize; i++){
         sienna_bankeddatabus_send(&processor->databus, bank, program[i], i + location);
-        printf("%02x ", program[i]);
+        printf("%06x <- %02x -> (%02x)\n", i + location, program[i], sienna_bankeddatabus_fetch(&processor->databus, bank, i + location));
     }
     printf("\n");
 }
-
+void sienna_processor_loadbin(sienna_processor_t* processor, char* bin_file, int bank, int location){
+    FILE* bfile = fopen(bin_file, "rb");
+    int size = 0;
+    fread(&size, sizeof(int), 1, bfile);
+    int* prog = (int*)malloc(sizeof(int)*size);
+    memset(prog, 0, sizeof(prog));
+    int t = 0;
+    for(int i = 0; i < size; i++) {
+        fread(&t, sizeof(int), 1, bfile);
+        prog[i] = t;
+    }
+    sienna_processor_load(processor, prog, size, bank, location);
+}
 void sienna_processor_init(sienna_processor_t* processor, int bank_count){
     sienna_bankeddatabus_init(&processor->databus, bank_count);
     sienna_registers_init(&processor->registers);

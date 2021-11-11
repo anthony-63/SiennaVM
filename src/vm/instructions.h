@@ -35,5 +35,5 @@
 
 #define mbir 0xf0
 
-#define nop 0xf9
+#define nop 0x00
 #endif
