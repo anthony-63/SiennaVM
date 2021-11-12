@@ -6,7 +6,7 @@
 #include "stack.h"
 
 typedef struct {
-    sienna_stack_t stack;
+    sienna_stack_t* stack;
     sienna_registers_t registers;
     sienna_bankeddatabus_t databus;
 } sienna_processor_t;

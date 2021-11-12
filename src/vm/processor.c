@@ -154,21 +154,22 @@ int impl_jle(sienna_processor_t* processor){
 }
 int impl_pushr(sienna_processor_t* processor) {
     int r = fetch(processor);
-    sienna_stack_push(&processor->stack, GET_REG(processor, r));
+    sienna_stack_push(processor->stack, GET_REG(processor, r));
     return 0x00;
 }
 int impl_pushi(sienna_processor_t* processor) {
     int imm = fetch(processor);
-    sienna_stack_push(&processor->stack, imm);
+    sienna_stack_push(processor->stack, imm);
     return 0x00;
 }
 int impl_popd(sienna_processor_t* processor) {
-    sienna_stack_pop(&processor->stack);
+    sienna_stack_pop(processor->stack);
     return 0x00;
 }
 int impl_popr(sienna_processor_t* processor) {
     int r = fetch(processor);
-    SET_REG(processor, r, sienna_stack_pop(&processor->stack));
+    SET_REG(processor, r, sienna_stack_pop(processor->stack));
+    return 0x00;
 }
 int impl_mbir(sienna_processor_t* processor) {
     int val = fetch(processor);
@@ -181,6 +182,7 @@ int impl_nop(sienna_processor_t* processor) {
 }
 
 int execute(sienna_processor_t* processor, int instruction){
+    SET_REG(processor, tr, 0);
     switch(instruction){
         case hlt:   return 0x60;
         case movir: return impl_movir(processor);
@@ -216,7 +218,7 @@ int execute(sienna_processor_t* processor, int instruction){
 
 
 void error_message(int code, char* fmt, ...){
-    printf("%02x: ", code);
+    printf("\n%02x: ", code);
     va_list va;
     va_start(va, fmt);
     vprintf(fmt, va);
@@ -237,7 +239,9 @@ void dbg(sienna_processor_t* processor) {
     printf("gr: %04x\n", GET_REG(processor, gr));
     printf("hr: %04x\n", GET_REG(processor, hr));
     printf("zr: %04x\n", GET_REG(processor, zr));
+    printf("tr: %01x\n", GET_REG(processor, tr));
     printf("jr: %06x\n", GET_REG(processor, jr));
+    
     printf("%04x: ", GET_REG(processor, ip));
     for(int i = 0; i < 10; i++){
         printf("%02x ", sienna_bankeddatabus_fetch(&processor->databus, GET_REG(processor, mb), GET_REG(processor, ip) + i));
@@ -248,8 +252,8 @@ void herror(sienna_processor_t* processor, int code){
     switch(code){
         case 0x60: exit(0);
         case 0x00: return;
-        case 0xe5: error_message(code, "Instruction %02x not found!", sienna_bankeddatabus_fetch(&processor->databus, GET_REG(processor, mb), GET_REG(processor, ip)));
-        default: error_message(code, "Invalid error code");
+        case 0xe5: error_message(code, "Instruction %02x not found!\n", sienna_bankeddatabus_fetch(&processor->databus, GET_REG(processor, mb), GET_REG(processor, ip)));
+        default: error_message(code, "Invalid error code\n");
     }
 }
 
@@ -273,6 +277,7 @@ void sienna_processor_load(sienna_processor_t* processor, int* program, int psiz
 }
 void sienna_processor_loadbin(sienna_processor_t* processor, char* bin_file, int bank, int location){
     FILE* bfile = fopen(bin_file, "rb");
+    if(!bfile) perror(bin_file),exit(-1);
     int size = 0;
     fread(&size, sizeof(int), 1, bfile);
     int* prog = (int*)malloc(sizeof(int)*size);
@@ -287,6 +292,7 @@ void sienna_processor_loadbin(sienna_processor_t* processor, char* bin_file, int
 void sienna_processor_init(sienna_processor_t* processor, int bank_count){
     sienna_bankeddatabus_init(&processor->databus, bank_count);
     sienna_registers_init(&processor->registers);
+    sienna_stack_init(&processor->stack, 0xFFFF);
     SET_REG(processor, ip, 0);
     SET_REG(processor, mb, 0);
     SET_REG(processor, ar, 0);

@@ -21,3 +21,7 @@ debugasm:
 	@echo ----- Builing Assembler with symbols -----
 	$(CC) -g $(CFLAGS) $(OUTASM)dbg.exe $(SRCASM)
 	gdb $(OUTASM)dbg.exe
+stacktest:
+	@echo ----- Building stack test -----
+	$(CC) -g $(CFLAGS) ./bin/stackt.exe ./src/vm/stackt.c ./src/vm/stack.c
+	./bin/stackt.exe

@@ -12,11 +12,11 @@
 #define STEP assembler->index += 1
 #define PUSH_OUT(X) assembler->out[assembler->oidx++] = X
 #define CONSUME_COMMAW consume_whitespace(assembler);consume_comma(assembler);consume_whitespace(assembler)
-#define STEPW STEP;consume_whitespace(assembler)
+#define STEPW consume_whitespace(assembler);STEP;consume_whitespace(assembler)
 #define CHECK_INST(X) ((assembler->program[assembler->index] == X[0]) && (assembler->program[assembler->index + 1] == X[1]) && (assembler->program[assembler->index + 2] == X[2]))
 #define CHECK_INST_S2(X) ((assembler->program[assembler->index] == X[0]) && (assembler->program[assembler->index + 1] == X[1]))
-#define ICALL(X) STEP;STEP;STEP;X(assembler);
-#define ICALL_S2(X) STEP;STEP;X(assembler);
+#define ICALL(X) STEPW;STEPW;STEPW;X(assembler);
+#define ICALL_S2(X) STEPW;STEPW;X(assembler);
 void expected(sienna_assembler_t* assembler, char ex) {
     printf("FATAL: Expected a '%c', current char '%c', at index %d\n", ex, CURRENT, assembler->index);
     exit(-1);
@@ -46,6 +46,7 @@ int get_reg_index(sienna_assembler_t* assembler, char* reg) {
     else if(strcmp(reg, "hr") == 0) return hr;
     else if(strcmp(reg, "zr") == 0) return zr;
     else if(strcmp(reg, "jr") == 0) return jr;
+    else if(strcmp(reg, "tr") == 0) return tr;
     else { expected_type_but_got("Register", reg);}
 }
 
@@ -381,10 +382,26 @@ void jle_impl(sienna_assembler_t* assembler){
 #define popr  0x33
 */
 void impl_psh(sienna_assembler_t* assembler) {
-
+    if(CHECK('r')) {
+        PUSH_OUT(pushr);
+        STEPW;
+        consume_register(assembler);
+    }else if(CHECK('i')) {
+        PUSH_OUT(pushi);
+        STEPW;
+        consume_hex(assembler);
+    }else {
+        expected_type(assembler, "r, i");
+    }
 } 
 void impl_pop(sienna_assembler_t* assembler) {
-
+    if(CHECK('r')) {
+        PUSH_OUT(popr);
+        STEPW;
+        consume_register(assembler);
+    }else {
+        expected_type(assembler, "r");
+    }
 }
 /*
 #define mbir 0xf0

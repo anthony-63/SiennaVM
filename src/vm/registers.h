@@ -13,8 +13,9 @@
 #define hr 10
 #define zr 11
 #define jr 12
+#define tr 13
 
-#define REGISTER_COUNT 13
+#define REGISTER_COUNT 14
 
 typedef struct {
     int *regs;
