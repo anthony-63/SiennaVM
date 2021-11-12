@@ -12,5 +12,5 @@ typedef struct {
 
 void sienna_assembler_assemble(sienna_assembler_t* assembler, char* input_file, char* output_file);
 void sienna_assembler_assemblestr(sienna_assembler_t* assembler, char* prog);
-
+void sienna_assembler_cleanup(sienna_assembler_t* assembler);
 #endif

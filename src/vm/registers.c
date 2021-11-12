@@ -18,3 +18,7 @@ void sienna_registers_setregister(sienna_registers_t* registers, int reg, int va
 int sienna_registers_getregister(sienna_registers_t* registers, int reg){
     return registers->regs[reg];
 }
+
+void sienna_registers_cleanup(sienna_registers_t* registers){
+    free(registers->regs);
+}

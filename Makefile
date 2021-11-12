@@ -16,7 +16,7 @@ debugvm:
 asm: 
 	@echo ----- Building Assembler -----
 	$(CC) $(CFLAGS) $(OUTASM).exe $(SRCASM)
-	$(OUTASM).exe
+	$(OUTASM).exe ./programs/main.svm ./programs/main.sbin
 debugasm:
 	@echo ----- Builing Assembler with symbols -----
 	$(CC) -g $(CFLAGS) $(OUTASM)dbg.exe $(SRCASM)

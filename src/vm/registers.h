@@ -25,4 +25,5 @@ void sienna_registers_init(sienna_registers_t* registers);
 void sienna_registers_resetflags(sienna_registers_t* registers);
 void sienna_registers_setregister(sienna_registers_t* registers, int reg, int val);
 int sienna_registers_getregister(sienna_registers_t* registers, int reg);
+void sienna_registers_cleanup(sienna_registers_t* registers);
 #endif

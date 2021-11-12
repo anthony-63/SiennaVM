@@ -1,5 +1,0 @@
-movir $1, %ar;
-pshi $abc;
-pshi $def;
-popr %tr;
-popr %br;

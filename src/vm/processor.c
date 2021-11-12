@@ -280,14 +280,26 @@ void sienna_processor_loadbin(sienna_processor_t* processor, char* bin_file, int
     if(!bfile) perror(bin_file),exit(-1);
     int size = 0;
     fread(&size, sizeof(int), 1, bfile);
-    int* prog = (int*)malloc(sizeof(int)*size);
+    int* prog = (int*)calloc(size, sizeof(int));
+    int* fprog = (int*)calloc(size, sizeof(int));
     memset(prog, 0, sizeof(prog));
     int t = 0;
+    int strt = 0;
     for(int i = 0; i < size; i++) {
         fread(&t, sizeof(int), 1, bfile);
         prog[i] = t;
     }
-    sienna_processor_load(processor, prog, size, bank, location);
+    int offset = 0;
+    for(int i = 0; i < size; i++) {
+        if(strt != 1) offset = i;
+        if(prog[i] != 0) {
+            strt = 1;
+        }
+        
+        if(strt == 1) fprog[i - offset] = prog[i];
+    }
+    sienna_processor_load(processor, fprog, size, bank, location);
+    free(prog);
 }
 void sienna_processor_init(sienna_processor_t* processor, int bank_count){
     sienna_bankeddatabus_init(&processor->databus, bank_count);
@@ -305,4 +317,9 @@ void sienna_processor_init(sienna_processor_t* processor, int bank_count){
     SET_REG(processor, hr, 0);
     SET_REG(processor, zr, 0);
     SET_REG(processor, jr, 0);
+}
+void sienna_processor_cleanup(sienna_processor_t* processor){
+    sienna_bankeddatabus_cleanup(&processor->databus);
+    sienna_stack_cleanup(processor->stack);
+    sienna_registers_cleanup(&processor->registers);
 }

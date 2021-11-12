@@ -1,1 +1,4 @@
-movir $01, %ar;
+movir $04, %ar;
+decr %ar;
+cmpir $00, %ar;
+jne &03;

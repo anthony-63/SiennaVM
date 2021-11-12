@@ -39,3 +39,8 @@ int sienna_stack_pop(sienna_stack_t* stack){
 int sienna_stack_peek(sienna_stack_t* stack){
     return stack->items[stack->top];
 }
+
+void sienna_stack_cleanup(sienna_stack_t* stack){
+    free(stack->items);
+    free(stack);
+}

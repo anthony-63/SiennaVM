@@ -20,5 +20,6 @@ int main(int argc, char** argv) {
     // sienna_processor_load(&processor, prog, sizeof(prog)/sizeof(prog[0]), 0, 0x0000);
     sienna_processor_loadbin(&processor, argv[1], 0, 0x0000);
     sienna_processor_run(&processor, 0x0000, 1);
+    sienna_processor_cleanup(&processor);
     return 0;
 }

@@ -62,6 +62,7 @@ void consume_hex(sienna_assembler_t* assembler) {
         hstr[idx++] = assembler->program[assembler->index++];
     }
     PUSH_OUT((int)strtol(hstr, NULL, 16));
+    free(hstr);
 }
 
 void consume_address(sienna_assembler_t* assembler) {
@@ -76,6 +77,7 @@ void consume_address(sienna_assembler_t* assembler) {
         hstr[idx++] = assembler->program[assembler->index++];
     }
     PUSH_OUT((int)strtol(hstr, NULL, 16));
+    free(hstr);
 }
 
 void consume_register(sienna_assembler_t* assembler){
@@ -90,6 +92,7 @@ void consume_register(sienna_assembler_t* assembler){
     reg[1] = CURRENT;
     STEP;
     PUSH_OUT(get_reg_index(assembler, reg));
+    free(reg);
 }
 
 void consume_whitespace(sienna_assembler_t* assembler) {
@@ -501,4 +504,8 @@ void sienna_assembler_assemblestr(sienna_assembler_t* assembler, char* prog){
         printf("%04x ", assembler->out[i]);
     }
     printf("\n");
+}
+
+void sienna_assembler_cleanup(sienna_assembler_t* assembler){
+    free(assembler->out);
 }
