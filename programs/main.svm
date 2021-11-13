@@ -1,4 +1,5 @@
-movir $04, %ar;
+movir $0B, %ar;
++loop:
 decr %ar;
 cmpir $00, %ar;
-jne &03;
+jne #[loop];

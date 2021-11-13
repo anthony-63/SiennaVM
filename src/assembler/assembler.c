@@ -17,6 +17,35 @@
 #define CHECK_INST_S2(X) ((assembler->program[assembler->index] == X[0]) && (assembler->program[assembler->index + 1] == X[1]))
 #define ICALL(X) STEPW;STEPW;STEPW;X(assembler);
 #define ICALL_S2(X) STEPW;STEPW;X(assembler);
+#define CONSUME_ADDR_LBL {\
+    int tolp = consume_address(assembler); \
+    int w = 0;\
+    for(int i = 0; i < tolp - 1; i++) STEPW; \
+    STEPW;\
+    STEPW;\
+    STEPW;\
+} 
+
+char** labelSymbols;
+int* labelAddresses;
+int lidx = 0;
+int address = 0;
+#define PUSH_LBL(X, Y) labelSymbols[lidx] = X; labelAddresses[lidx++] = Y;
+
+
+int find_lbl(sienna_assembler_t* assembler, char* lbl) {
+    int found = 0;
+    for(int i = 0; i < lidx; i++) {
+        printf("Comparing '%s' : '%s' = %d\n", labelSymbols[i], lbl, strcmp(labelSymbols[i], lbl) == 0);
+        if(strcmp(labelSymbols[i], lbl) == 0) {
+            printf("Found label!\n");
+            return i;
+        }
+    }
+    printf("\nError label '%s' not found\n", lbl);
+    exit(-1);
+} 
+
 void expected(sienna_assembler_t* assembler, char ex) {
     printf("FATAL: Expected a '%c', current char '%c', at index %d\n", ex, CURRENT, assembler->index);
     exit(-1);
@@ -62,22 +91,49 @@ void consume_hex(sienna_assembler_t* assembler) {
         hstr[idx++] = assembler->program[assembler->index++];
     }
     PUSH_OUT((int)strtol(hstr, NULL, 16));
-    free(hstr);
+    address++;
 }
-
-void consume_address(sienna_assembler_t* assembler) {
-    if(!CHECK('&')) {
+void consume_whitespace(sienna_assembler_t* assembler) {
+    while(CHECK(' ') || CHECK('\n')) {
+        STEP;
+    }
+}
+int consume_address(sienna_assembler_t* assembler) {
+    if(!CHECK('&') && !CHECK('#')) {
         expected(assembler, '&');
+        expected(assembler, '#');
+    }
+    assembler->index--;
+    printf("AAA: %c\n", CURRENT);
+    if(CHECK('#')) {
+        STEPW;
+        STEPW;
+        printf("FOUND LBL DEC!\n");
+        int size = 0;
+        if(assembler->program[assembler->index - 1] == '['){
+            while(assembler->program[assembler->index + size] != ']') {
+                size++;
+            }
+            char* labelname = (char*)calloc(size, sizeof(char));
+            for(int i = 0; i < size; i++) labelname[i] = assembler->program[assembler->index + i];
+            int lblidx = find_lbl(assembler, labelname);
+            printf("LABEL FOUND: %s, address: %d\n", labelname, labelAddresses[lblidx]);
+            PUSH_OUT(labelAddresses[lblidx]);
+            return size;
+        }else {
+            expected(assembler, '[');
+        }
     }
     char* hstr = (char*)malloc(sizeof(char)*0xFFFF);
     memset(hstr, 0, sizeof(hstr));
-    STEP;
+    STEPW;
     int idx = 0;
     while(IS_HEX) {
         hstr[idx++] = assembler->program[assembler->index++];
     }
     PUSH_OUT((int)strtol(hstr, NULL, 16));
-    free(hstr);
+    address++;
+    return 0;
 }
 
 void consume_register(sienna_assembler_t* assembler){
@@ -92,14 +148,10 @@ void consume_register(sienna_assembler_t* assembler){
     reg[1] = CURRENT;
     STEP;
     PUSH_OUT(get_reg_index(assembler, reg));
-    free(reg);
+    address++;
 }
 
-void consume_whitespace(sienna_assembler_t* assembler) {
-    while(CHECK(' ') || CHECK('\n')) {
-        STEP;
-    }
-}
+
 
 void consume_comma(sienna_assembler_t* assembler) {
     if(!CHECK(',')) {
@@ -117,6 +169,14 @@ void consume_semi(sienna_assembler_t* assembler){
         return;
     }
 }
+void consume_colon(sienna_assembler_t* assembler){
+    if(!CHECK(':')){
+        expected(assembler, ':');
+    }else{
+        STEP;
+        return;
+    }
+}
 /*
     int index;
     char* program;
@@ -125,6 +185,17 @@ void consume_semi(sienna_assembler_t* assembler){
 */
 
 void init(sienna_assembler_t* assembler, char* prog) {
+    labelSymbols = (char**)calloc(0xFFFF, sizeof(char*));
+    labelAddresses = (int*)calloc(0xFFFF, sizeof(int));
+    if(labelSymbols != NULL) {
+        for(int i = 0; i < 0xFFFF; i++) {
+            labelSymbols[i] = (char*)calloc(0xFF, sizeof(char));
+        }
+    }else {
+        printf("labelSymbols is NULL??\n");
+        exit(0);
+    }
+    
     assembler->index = 0;
     assembler->ooffs = 18;
     assembler->psize = strlen(prog);
@@ -154,7 +225,7 @@ void mov_impl(sienna_assembler_t* assembler) {
             STEPW;
             consume_hex(assembler);
             CONSUME_COMMAW;
-            consume_address(assembler);
+            CONSUME_ADDR_LBL
         }else {
             expected_type(assembler, "r, m");
         }
@@ -171,7 +242,7 @@ void mov_impl(sienna_assembler_t* assembler) {
             STEPW;
             consume_register(assembler);
             CONSUME_COMMAW;
-            consume_address(assembler);
+            CONSUME_ADDR_LBL
         }else {
             expected_type(assembler, "r, m");
         }
@@ -180,7 +251,7 @@ void mov_impl(sienna_assembler_t* assembler) {
         if(CHECK('r')) {
             PUSH_OUT(movmr);
             STEPW;
-            consume_address(assembler);
+            CONSUME_ADDR_LBL
             CONSUME_COMMAW;
             consume_register(assembler);
         }else {
@@ -351,32 +422,32 @@ void cmp_impl(sienna_assembler_t* assembler){
 void je_impl(sienna_assembler_t* assembler){
     PUSH_OUT(je);
     STEPW;
-    consume_address(assembler);
+    CONSUME_ADDR_LBL
 }
 void jne_impl(sienna_assembler_t* assembler){
     PUSH_OUT(jne);
     STEPW;
-    consume_address(assembler);
+    CONSUME_ADDR_LBL
 }
 void jg_impl(sienna_assembler_t* assembler){
     PUSH_OUT(jg);
     STEPW;
-    consume_address(assembler);
+    CONSUME_ADDR_LBL
 }
 void jl_impl(sienna_assembler_t* assembler){
     PUSH_OUT(jl);
     STEPW;
-    consume_address(assembler);
+    CONSUME_ADDR_LBL
 }
 void jge_impl(sienna_assembler_t* assembler){
     PUSH_OUT(jge);
     STEPW;
-    consume_address(assembler);
+    CONSUME_ADDR_LBL
 }
 void jle_impl(sienna_assembler_t* assembler){
     PUSH_OUT(jle);
     STEPW;
-    consume_address(assembler);
+    CONSUME_ADDR_LBL
 }
 /*
 #define pushr 0x30
@@ -421,6 +492,19 @@ void impl_nop(sienna_assembler_t* assembler){
     PUSH_OUT(nop);
 }
 
+int impl_mkl(sienna_assembler_t* assembler){
+    STEPW;
+    int size = 0;
+    while(assembler->program[assembler->index + size] != ':') {
+        size++;
+    }
+    char* labelname = (char*)calloc(size, sizeof(char));
+    for(int i = 0; i < size; i++) labelname[i] = assembler->program[assembler->index + i];
+    printf("\nlabelname: %s, size: %d, address_pointer: %d\n", labelname, size, address + 1);
+    PUSH_LBL(labelname, address + 1);
+    return size;
+}
+
 int asm_loop(sienna_assembler_t* assembler) {
     while(assembler->index < assembler->psize){
         if(     CHECK_INST   ("mov")) { ICALL   (mov_impl) }
@@ -440,6 +524,13 @@ int asm_loop(sienna_assembler_t* assembler) {
         else if(CHECK_INST   ("pop")) { ICALL   (impl_pop) }
         else if(CHECK_INST   ("mbr")) { ICALL   (impl_mbir)}
         else if(CHECK_INST   ("nop")) { ICALL   (impl_nop) }
+        else if(CURRENT == '+')       {
+            int toloop = impl_mkl(assembler);
+            for(int i = 0; i < toloop; i++) {
+                STEPW;
+            } 
+            
+        }
         else { 
             char inst[4] = {assembler->program[assembler->index - 1], assembler->program[assembler->index], assembler->program[assembler->index + 1]};
             printf("FATAL: Invalid instruction '%s' at index %d, current char '%c'\n", inst, assembler->index, CURRENT);
@@ -508,4 +599,5 @@ void sienna_assembler_assemblestr(sienna_assembler_t* assembler, char* prog){
 
 void sienna_assembler_cleanup(sienna_assembler_t* assembler){
     free(assembler->out);
+    free(labelSymbols);
 }
