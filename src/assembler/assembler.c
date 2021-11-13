@@ -20,11 +20,10 @@
 #define CONSUME_ADDR_LBL {\
     int tolp = consume_address(assembler); \
     int w = 0;\
-    for(int i = 0; i < tolp - 1; i++) STEPW; \
-    STEPW;\
-    STEPW;\
-    STEPW;\
-    STEPW;\
+    char c = '[';\
+    while(c != ']') {\
+        c = assembler->program[assembler->index++];\
+    }\
 } 
 
 char** labelSymbols;

@@ -1,5 +1,5 @@
 movir $0B, %ar;
-+loop:
++looptest:
 decr %ar;
 cmpir $00, %ar;
-jne #[loop];
+jne #[looptest];
