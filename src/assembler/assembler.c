@@ -24,6 +24,7 @@
     STEPW;\
     STEPW;\
     STEPW;\
+    STEPW;\
 } 
 
 char** labelSymbols;
@@ -36,13 +37,11 @@ int address = 0;
 int find_lbl(sienna_assembler_t* assembler, char* lbl) {
     int found = 0;
     for(int i = 0; i < lidx; i++) {
-        printf("Comparing '%s' : '%s' = %d\n", labelSymbols[i], lbl, strcmp(labelSymbols[i], lbl) == 0);
         if(strcmp(labelSymbols[i], lbl) == 0) {
-            printf("Found label!\n");
             return i;
         }
     }
-    printf("\nError label '%s' not found\n", lbl);
+    printf("\nFATAL: Error symbol '%s' not found\n", lbl);
     exit(-1);
 } 
 
@@ -104,11 +103,9 @@ int consume_address(sienna_assembler_t* assembler) {
         expected(assembler, '#');
     }
     assembler->index--;
-    printf("AAA: %c\n", CURRENT);
     if(CHECK('#')) {
         STEPW;
         STEPW;
-        printf("FOUND LBL DEC!\n");
         int size = 0;
         if(assembler->program[assembler->index - 1] == '['){
             while(assembler->program[assembler->index + size] != ']') {
@@ -117,7 +114,6 @@ int consume_address(sienna_assembler_t* assembler) {
             char* labelname = (char*)calloc(size, sizeof(char));
             for(int i = 0; i < size; i++) labelname[i] = assembler->program[assembler->index + i];
             int lblidx = find_lbl(assembler, labelname);
-            printf("LABEL FOUND: %s, address: %d\n", labelname, labelAddresses[lblidx]);
             PUSH_OUT(labelAddresses[lblidx]);
             return size;
         }else {
@@ -455,6 +451,7 @@ void jle_impl(sienna_assembler_t* assembler){
 #define popd  0x32
 #define popr  0x33
 */
+
 void impl_psh(sienna_assembler_t* assembler) {
     if(CHECK('r')) {
         PUSH_OUT(pushr);
@@ -501,11 +498,62 @@ int impl_mkl(sienna_assembler_t* assembler){
     char* labelname = (char*)calloc(size, sizeof(char));
     for(int i = 0; i < size; i++) labelname[i] = assembler->program[assembler->index + i];
     printf("\nlabelname: %s, size: %d, address_pointer: %d\n", labelname, size, address + 1);
-    PUSH_LBL(labelname, address + 1);
+    PUSH_LBL(labelname, address);
     return size;
+}
+int skip_lbl(sienna_assembler_t* assembler) {
+    STEPW;
+    int i = 0;
+    while(assembler->program[assembler->index + i] != ':') { 
+        i++;
+    }
+    return i;
+}
+void stage_1(sienna_assembler_t* assembler) {
+    while(assembler->index < assembler->psize){
+        if(     CHECK_INST   ("mov")) { address++; address++; address++; STEPW; STEPW; STEPW; }
+        else if(CHECK_INST   ("add")) { address++; address++; address++; STEPW; STEPW; STEPW; }
+        else if(CHECK_INST   ("sub")) { address++; address++; address++; STEPW; STEPW; STEPW; }
+        else if(CHECK_INST   ("mul")) { address++; address++; address++; STEPW; STEPW; STEPW; }
+        else if(CHECK_INST   ("inc")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("dec")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("cmp")) { address++; address++; address++; STEPW; STEPW; STEPW; }
+        else if(CHECK_INST_S2("je"))  { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST_S2("jl"))  { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST_S2("jg"))  { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("jne")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("jle")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("jge")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("psh")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("pop")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("mbr")) { address++; address++; STEPW; STEPW; }
+        else if(CHECK_INST   ("nop")) { address++; STEPW;}
+        else if(CURRENT == '+'){
+            int toloop = impl_mkl(assembler);
+            for(int i = 0; i < toloop; i++) {
+                STEPW;
+            }
+        }else {
+            STEP;
+        }
+    }
+    assembler->index = 0;
+    address = 0;
+}
+
+void print_line(sienna_assembler_t* assembler) {
+    int start = 0;
+    int end = 0;
+    while(assembler->program[assembler->index + start] != '\n') start--;
+    while(assembler->program[assembler->index + end  ] != '\n') end++;
+    char* line = (char*)calloc(end - start, sizeof(char));
+    for(int i = start + 1; i < end + 1; i++) {
+        printf("%c", assembler->program[assembler->index + i]);
+    }
 }
 
 int asm_loop(sienna_assembler_t* assembler) {
+    stage_1(assembler);
     while(assembler->index < assembler->psize){
         if(     CHECK_INST   ("mov")) { ICALL   (mov_impl) }
         else if(CHECK_INST   ("add")) { ICALL   (add_impl) }
@@ -524,16 +572,17 @@ int asm_loop(sienna_assembler_t* assembler) {
         else if(CHECK_INST   ("pop")) { ICALL   (impl_pop) }
         else if(CHECK_INST   ("mbr")) { ICALL   (impl_mbir)}
         else if(CHECK_INST   ("nop")) { ICALL   (impl_nop) }
-        else if(CURRENT == '+')       {
-            int toloop = impl_mkl(assembler);
+        else if(CURRENT == '+') { 
+            int toloop = skip_lbl(assembler);
             for(int i = 0; i < toloop; i++) {
                 STEPW;
-            } 
-            
+            }
         }
         else { 
             char inst[4] = {assembler->program[assembler->index - 1], assembler->program[assembler->index], assembler->program[assembler->index + 1]};
-            printf("FATAL: Invalid instruction '%s' at index %d, current char '%c'\n", inst, assembler->index, CURRENT);
+            printf("FATAL: Invalid instruction '%s' at index %d, current char '%c'\nLine: ", inst, assembler->index, CURRENT);
+            print_line(assembler);
+            printf("\n");
             return 0xefff;
         }
         consume_whitespace(assembler);
